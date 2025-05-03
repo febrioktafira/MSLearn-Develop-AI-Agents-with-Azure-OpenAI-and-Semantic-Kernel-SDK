@@ -16,3 +16,64 @@ string apiKey = config["apiKey"]!;
 //
 // Add your code
 //
+// Create a kernel with Azure OpenAI chat completion
+var builder = Kernel.CreateBuilder();
+builder.AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey);
+
+// Build the kernel
+Kernel kernel = builder.Build();
+
+// Get chat completion service
+var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+
+// Create a chat history object
+ChatHistory chatHistory = [];
+
+// Create helper functions to append to the console and chat history
+void AddMessage(string msg) {
+    Console.WriteLine(msg);
+    chatHistory.AddAssistantMessage(msg);
+}
+
+void GetInput() {
+    string input = Console.ReadLine()!;
+    chatHistory.AddUserMessage(input);
+}
+
+// Add a helper function to retrieve the reply
+async Task GetReply() {
+    ChatMessageContent reply = await chatCompletionService.GetChatMessageContentAsync(
+        chatHistory,
+        kernel: kernel
+    );
+    Console.WriteLine(reply.ToString());
+    chatHistory.AddAssistantMessage(reply.ToString());
+}
+
+// Prompt the LLM
+chatHistory.AddSystemMessage("You are a helpful travel assistant.");
+chatHistory.AddSystemMessage("Recommend a destination to the traveler based on their background and preferences.");
+
+// Get information about the user's plans
+AddMessage("Tell me about your travel plans.");
+GetInput();
+await GetReply();
+
+// Offer recommendations
+AddMessage("Would you like to hear some recommendations?");
+GetInput();
+await GetReply();
+
+// Offer language tips
+AddMessage("Would you like some helpful phrases in the local language?");
+GetInput();
+await GetReply();
+
+// Observe the chat history object
+Console.WriteLine("Chat Ended.\n");
+Console.WriteLine("Chat History:");
+
+for (int i = 0; i < chatHistory.Count; i++)
+{
+    Console.WriteLine($"{chatHistory[i].Role}: {chatHistory[i]}");
+}
